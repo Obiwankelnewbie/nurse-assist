@@ -85,10 +85,12 @@
     </div>
 
 <script>
-const DB_KEY = "nurse_assist_v14_final";
+/** ---------------- CONFIG ---------------- */
+const DB_KEY = "nurse_assist_v14";
 let state = { notes: [] };
 const save = () => { try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch(e) {} };
 
+/** ---------------- ADMIN (3 CLICS) ---------------- */
 let clickCount = 0;
 let adminTimeout;
 const admin = {
@@ -111,6 +113,7 @@ const admin = {
     }
 };
 
+/** ---------------- ACTIONS ---------------- */
 const templates = [
     { title: "TRANSMISSION", text: "Situation :\nAntécédents :\nActions :\nRésultats :" },
     { title: "CONSTANTES", text: "TA : / mmHg\nFC : bpm\nGlycémie : g/L" },
@@ -138,21 +141,17 @@ const actions = {
             state.notes = []; save(); render(); this.closeResetModal(); admin.hide();
         } else { alert("Mot incorrect."); }
     },
-   exportAll() {
+    exportAll() {
         if (!state.notes.length) return alert("Rien à exporter.");
 
-        // 🧠 LE PROMPT DE L'AGENT VISUALIZER (C'est lui qui bosse)
         const promptSysteme = `Tu es un agent de synthèse clinique. 
         Règles : Regroupe par patient, place les alertes en haut, nettoie le jargon. 
         Format : [HEURE] - [NOM] - [SITUATION]`;
 
-        // 📋 GÉNÉRATION DU JOURNAL STRUCTURÉ
         let exportText = `📋 JOURNAL DE TOURNÉE - ${new Date().toLocaleDateString('fr-FR')}\n`;
         exportText += `Généré par l'Agent Visualizer\n`;
         exportText += `──────────────────────────────\n\n`;
 
-        // Logique de tri (Simulation du Visualizer)
-        // On trie par patient pour plus de clarté
         const notesTriees = [...state.notes].sort((a, b) => a.patient.localeCompare(b.patient));
 
         notesTriees.forEach(n => {
@@ -161,12 +160,18 @@ const actions = {
             exportText += `──────────────────────────────\n`;
         });
 
-        // Envoi au presse-papier
         navigator.clipboard.writeText(exportText).then(() => {
             alert("✅ AGENT VISUALIZER : Rapport de journée généré et copié !");
         });
-    },
+    }, // <-- L'ACCOLADE QUI MANQUAIT EST ICI
+    async shareLastNote() {
+        if (!state.notes.length) return;
+        const n = state.notes[0];
+        try { await navigator.share({ text: `[${n.patient}] ${n.text}` }); } catch(e) {}
+    }
+};
 
+/** ---------------- RENDER ---------------- */
 function render() {
     const zone = document.getElementById('scroll-zone');
     zone.innerHTML = '';
