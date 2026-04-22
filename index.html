@@ -10,24 +10,16 @@
         body { background: var(--bg); color: #fff; font-family: system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; margin: 0; }
         #scroll-zone { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
         #scroll-zone::-webkit-scrollbar { display: none; }
-        
         .card { background: var(--card); border: 1px solid #1f1f1f; border-radius: 20px; padding: 18px; position: relative; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        
         .patient-input { width: 100%; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 9999px; padding: 8px 14px; font-size: 14px; font-weight: 700; color: #60a5fa; outline: none; }
-        
         textarea { background: transparent; width: 100%; border: 1px solid transparent; outline: none; color: #e5e7eb; font-size: 15.5px; line-height: 1.6; resize: none; margin-top: 10px; overflow: hidden; border-radius: 8px; padding: 4px; transition: border 0.2s, background 0.2s; }
         textarea:focus { border-color: rgba(59,130,246,0.3); background: rgba(255,255,255,0.02); }
-
         .orb { width: 92px; height: 92px; border-radius: 50%; background: #fff; color: #000; font-size: 26px; border: none; touch-action: manipulation; transition: 0.25s; display: flex; align-items: center; justify-content: center; z-index: 50; }
         .recording { background: #ef4444 !important; color: white !important; box-shadow: 0 0 60px #ef4444 !important; transform: scale(1.1); }
-        
         .side-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px; transition: 0.2s; }
-        .side-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.9); }
-
         .template-btn { font-size: 9px; padding: 6px 14px; border-radius: 9999px; background: rgba(255,255,255,0.05); color: #93c5fd; border: 1px solid rgba(255,255,255,0.1); font-weight: 800; text-transform: uppercase; }
         .confidential-banner { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; font-size: 10px; font-weight: 800; padding: 6px 16px; border-radius: 12px; text-align: center; }
-
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
         .modal-content { background: #111; border: 1px solid #333; border-radius: 24px; padding: 24px; width: 100%; max-width: 320px; text-align: center; }
         .modal-input { background: #000; border: 1px solid #444; border-radius: 12px; padding: 12px; width: 100%; text-align: center; color: #ef4444; font-weight: 900; letter-spacing: 2px; margin: 15px 0; outline: none; }
@@ -85,12 +77,11 @@
     </div>
 
 <script>
-/** ---------------- CONFIG ---------------- */
-const DB_KEY = "nurse_assist_v14";
+const DB_KEY = "nurse_assist_v14_final";
 let state = { notes: [] };
-const save = () => { try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch(e) {} };
 
-/** ---------------- ADMIN (3 CLICS) ---------------- */
+const save = () => { try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch(e) { console.error("Erreur Save", e); } };
+
 let clickCount = 0;
 let adminTimeout;
 const admin = {
@@ -113,7 +104,6 @@ const admin = {
     }
 };
 
-/** ---------------- ACTIONS ---------------- */
 const templates = [
     { title: "TRANSMISSION", text: "Situation :\nAntécédents :\nActions :\nRésultats :" },
     { title: "CONSTANTES", text: "TA : / mmHg\nFC : bpm\nGlycémie : g/L" },
@@ -122,7 +112,7 @@ const templates = [
 
 const actions = {
     add(text, title = null) {
-        const note = { id: crypto.randomUUID(), patient: "NOM PATIENT", title: title || `NOTE MANUELLE`, text: text, time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), date: new Date().toLocaleDateString('fr-FR') };
+        const note = { id: crypto.randomUUID(), patient: "NOM PATIENT", title: title || `NOTE MANUELLE`, text: text, time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) };
         state.notes.unshift(note);
         save();
         render();
@@ -131,7 +121,7 @@ const actions = {
             if(tx) tx.focus();
         }, 100);
     },
-    addTemplate(idx) { actions.add(templates[idx].text, templates[idx].title); document.getElementById('scroll-zone').scrollTo({top: 0, behavior: 'smooth'}); },
+    addTemplate(idx) { actions.add(templates[idx].text, templates[idx].title); },
     update(id, field, value) { const n = state.notes.find(n => n.id === id); if (n) { n[field] = value; save(); } },
     delete(id) { if (confirm("Supprimer cette note ?")) { state.notes = state.notes.filter(n => n.id !== id); save(); render(); } },
     openResetModal() { document.getElementById('reset-modal').style.display = 'flex'; document.getElementById('confirm-input').focus(); },
@@ -143,42 +133,27 @@ const actions = {
     },
     exportAll() {
         if (!state.notes.length) return alert("Rien à exporter.");
-
-        const promptSysteme = `Tu es un agent de synthèse clinique. 
-        Règles : Regroupe par patient, place les alertes en haut, nettoie le jargon. 
-        Format : [HEURE] - [NOM] - [SITUATION]`;
-
         let exportText = `📋 JOURNAL DE TOURNÉE - ${new Date().toLocaleDateString('fr-FR')}\n`;
-        exportText += `Généré par l'Agent Visualizer\n`;
-        exportText += `──────────────────────────────\n\n`;
-
         const notesTriees = [...state.notes].sort((a, b) => a.patient.localeCompare(b.patient));
-
         notesTriees.forEach(n => {
-            exportText += `📍 ${n.patient} (${n.time})\n`;
-            exportText += `📝 ${n.text}\n`;
-            exportText += `──────────────────────────────\n`;
+            exportText += `📍 ${n.patient} (${n.time})\n📝 ${n.text}\n──────────────────────────────\n`;
         });
-
-        navigator.clipboard.writeText(exportText).then(() => {
-            alert("✅ AGENT VISUALIZER : Rapport de journée généré et copié !");
-        });
-    }, // <-- L'ACCOLADE QUI MANQUAIT EST ICI
+        navigator.clipboard.writeText(exportText).then(() => { alert("✅ Rapport copié !"); });
+    },
     async shareLastNote() {
         if (!state.notes.length) return;
         const n = state.notes[0];
-        try { await navigator.share({ text: `[${n.patient}] ${n.text}` }); } catch(e) {}
+        try { await navigator.share({ text: `[${n.patient}] ${n.text}` }); } catch(e) { console.log("Share non supporté"); }
     }
 };
 
-/** ---------------- RENDER ---------------- */
 function render() {
     const zone = document.getElementById('scroll-zone');
     zone.innerHTML = '';
     state.notes.forEach(note => {
         const card = document.createElement('div');
         card.className = "card";
-        card.innerHTML = `<div class="flex justify-between items-center mb-3"><input type="text" class="patient-input" value="${note.patient}" spellcheck="false"><span class="text-[9px] font-mono opacity-30 ml-2">${note.time}</span></div><div class="text-[9px] font-black text-blue-500/50 mb-1 uppercase tracking-widest">${note.title}</div><textarea spellcheck="false" placeholder="Écrire ici...">${note.text}</textarea><div class="flex gap-4 mt-3 pt-3 border-t border-white/5"><button data-action="copy" data-text="${note.text.replace(/"/g, '&quot;')}" class="text-[9px] font-bold opacity-30 hover:opacity-100 uppercase transition-all">Copier</button><button data-action="delete" data-id="${note.id}" class="text-[9px] font-bold text-red-900/60 hover:text-red-500 uppercase ml-auto transition-all">Effacer</button></div>`;
+        card.innerHTML = `<div class="flex justify-between items-center mb-3"><input type="text" class="patient-input" value="${note.patient}" spellcheck="false"><span class="text-[9px] font-mono opacity-30 ml-2">${note.time}</span></div><div class="text-[9px] font-black text-blue-500/50 mb-1 uppercase tracking-widest">${note.title}</div><textarea spellcheck="false" placeholder="Écrire ici...">${note.text}</textarea><div class="flex gap-4 mt-3 pt-3 border-t border-white/5"><button data-action="copy" data-text="${note.text.replace(/"/g, '&quot;')}" class="text-[9px] font-bold opacity-30 hover:opacity-100 uppercase">Copier</button><button data-action="delete" data-id="${note.id}" class="text-[9px] font-bold text-red-900/60 hover:text-red-500 uppercase ml-auto">Effacer</button></div>`;
         const input = card.querySelector('input');
         const textarea = card.querySelector('textarea');
         input.oninput = (e) => actions.update(note.id, 'patient', e.target.value);
@@ -195,38 +170,30 @@ function render() {
     });
 }
 
-/** ---------------- ORBE CONNECTÉ ---------------- */
 let rec = null; let isRecording = false; let finalStr = "";
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
     const API = window.SpeechRecognition || window.webkitSpeechRecognition;
     rec = new API(); rec.lang = 'fr-FR'; rec.interimResults = true;
-    rec.onstart = () => { 
-        isRecording = true; 
-        document.getElementById('mic').classList.add('recording'); 
-        document.getElementById('mic').querySelector('span').innerText = '●'; 
-        finalStr = ""; 
-    };
+    rec.onstart = () => { isRecording = true; document.getElementById('mic').classList.add('recording'); document.getElementById('status').innerText = "Écoute..."; finalStr = ""; };
     rec.onresult = (e) => {
         let interim = ""; 
         for (let i = e.resultIndex; i < e.results.length; i++) { 
             if (e.results[i].isFinal) finalStr += e.results[i][0].transcript + " "; 
             else interim = e.results[i][0].transcript; 
         }
-        document.getElementById('status').innerText = interim ? "→ " + interim : "Écoute...";
+        document.getElementById('status').innerText = interim ? "→ " + interim : "Enregistre...";
     };
     rec.onend = () => {
-        isRecording = false; 
-        document.getElementById('mic').classList.remove('recording'); 
-        document.getElementById('mic').querySelector('span').innerText = '🎤';
+        isRecording = false; document.getElementById('mic').classList.remove('recording');
         if (finalStr.trim().length > 2) actions.add(finalStr.trim());
-        setTimeout(() => { if(document.getElementById('reset-btn').classList.contains('hidden')) { document.getElementById('status').innerText = "Appuyez 3 fois sur NURSE ASSIST pour effacer la journée"; } }, 2000);
+        document.getElementById('status').innerText = "Appuyez 3 fois sur NURSE ASSIST pour effacer";
     };
-    rec.onerror = () => { isRecording = false; document.getElementById('mic').classList.remove('recording'); };
 }
 const mic = document.getElementById('mic');
 const startAction = (e) => { e.preventDefault(); if(rec && !isRecording) rec.start(); };
 const stopAction = () => { if(rec && isRecording) rec.stop(); };
-mic.addEventListener('mousedown', startAction); mic.addEventListener('mouseup', stopAction); mic.addEventListener('touchstart', startAction); mic.addEventListener('touchend', stopAction);
+mic.addEventListener('mousedown', startAction); mic.addEventListener('mouseup', stopAction);
+mic.addEventListener('touchstart', startAction); mic.addEventListener('touchend', stopAction);
 
 const raw = localStorage.getItem(DB_KEY); if (raw) state = JSON.parse(raw);
 render();
