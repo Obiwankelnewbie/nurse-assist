@@ -1,70 +1,12 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NURSE ASSIST</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root { --bg: #000; --card: #0a0a0a; }
-        body { background: var(--bg); color: #fff; font-family: system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; margin: 0; }
-        #scroll-zone { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-        #scroll-zone::-webkit-scrollbar { display: none; }
-        .card { background: var(--card); border: 1px solid #1f1f1f; border-radius: 20px; padding: 18px; position: relative; animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        .patient-input { width: 100%; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 9999px; padding: 8px 14px; font-size: 14px; font-weight: 700; color: #60a5fa; outline: none; }
-        textarea { background: transparent; width: 100%; border: 1px solid transparent; outline: none; color: #e5e7eb; font-size: 15.5px; line-height: 1.6; resize: none; margin-top: 10px; overflow: hidden; border-radius: 8px; padding: 4px; transition: border 0.2s, background 0.2s; }
-        textarea:focus { border-color: rgba(59,130,246,0.3); background: rgba(255,255,255,0.02); }
-        .orb { width: 92px; height: 92px; border-radius: 50%; background: #fff; color: #000; font-size: 26px; border: none; touch-action: manipulation; transition: 0.25s; display: flex; align-items: center; justify-content: center; z-index: 50; }
-        .recording { background: #ef4444 !important; color: white !important; box-shadow: 0 0 60px #ef4444 !important; transform: scale(1.1); }
-        .side-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px; transition: 0.2s; }
-        .confidential-banner { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; font-size: 10px; font-weight: 800; padding: 6px 16px; border-radius: 12px; text-align: center; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-        .modal-content { background: #111; border: 1px solid #333; border-radius: 24px; padding: 24px; width: 100%; max-width: 320px; text-align: center; }
-    </style>
-</head>
-<body>
-
-    <header class="p-5 flex flex-col gap-4 border-b border-white/5 bg-black">
-        <div class="flex justify-between items-center">
-            <div onclick="admin.trigger()">
-                <h1 id="logo" class="text-2xl font-black italic tracking-tighter text-blue-600 leading-none select-none uppercase">Nurse Assist</h1>
-                <p class="text-[9px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1 italic">Souveraineté des données</p>
-            </div>
-            <button onclick="actions.exportAll()" class="bg-blue-600 px-5 py-2 rounded-full text-[10px] font-black uppercase active:scale-95 transition">Exporter</button>
-        </div>
-    </header>
-
-    <div id="scroll-zone"></div>
-
-    <div class="p-6 bg-zinc-950 border-t border-white/5">
-        <div class="flex flex-col items-center gap-5">
-            <div id="status" class="text-[11px] font-black italic tracking-[0.2em] text-zinc-400 uppercase text-center">Appui long sur le micro pour parler</div>
-
-            <div class="flex items-center justify-between w-full max-w-sm px-4">
-                <button onclick="actions.add('')" class="side-btn">⌨️</button>
-                <button id="mic" class="orb">🎤</button>
-                <button onclick="actions.shareLastNote()" class="side-btn">📤</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="export-modal" class="modal-overlay">
-        <div class="modal-content !max-w-lg">
-            <h2 class="text-blue-500 font-black uppercase text-sm mb-4 italic">Visualizer : Rapport généré</h2>
-            <textarea id="export-area" class="w-full h-64 bg-black border border-white/10 rounded-xl p-4 text-xs text-white/80 font-mono mb-4" readonly></textarea>
-            <button onclick="document.getElementById('export-modal').style.display='none'" class="w-full bg-blue-600 py-3 rounded-xl text-[10px] font-black uppercase">Fermer (C'est copié !)</button>
-        </div>
-    </div>
-
 <script>
 const DB_KEY = "nurse_v14_final_fix";
 let state = { notes: [] };
-
 const save = () => { localStorage.setItem(DB_KEY, JSON.stringify(state)); };
 
+// --- ACTIONS ---
 const actions = {
     add(text) {
+        if (!text || text.length < 2) return;
         const note = { id: crypto.randomUUID(), patient: "PATIENT", text: text, time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) };
         state.notes.unshift(note);
         save();
@@ -77,11 +19,7 @@ const actions = {
     exportAll() {
         if (!state.notes.length) return alert("Rien à exporter.");
         let txt = `📋 TOURNEE DU ${new Date().toLocaleDateString()}\n`;
-        state.notes.forEach(n => {
-            txt += `\n[${n.time}] PATIENT: ${n.patient}\nNote: ${n.text}\n---`;
-        });
-        
-        // On copie ET on affiche
+        state.notes.forEach(n => { txt += `\n[${n.time}] PATIENT: ${n.patient}\nNote: ${n.text}\n---`; });
         navigator.clipboard.writeText(txt);
         document.getElementById('export-area').value = txt;
         document.getElementById('export-modal').style.display = 'flex';
@@ -99,17 +37,19 @@ function render() {
     });
 }
 
-/** 🎤 LE MOTEUR VOCAL AVEC DIAGNOSTIC **/
+/** 🎤 MOTEUR VOCAL RE-BLINDÉ POUR MOBILE **/
 let rec = null;
 const API = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-if (!API) {
-    document.getElementById('status').innerText = "ERREUR : Navigateur non compatible micro";
-    document.getElementById('status').style.color = "#ef4444";
-} else {
+function initSpeech() {
+    if (!API) {
+        alert("Ce navigateur ne supporte pas la dictée vocale.");
+        return;
+    }
     rec = new API();
     rec.lang = 'fr-FR';
     rec.interimResults = true;
+    rec.continuous = false; // Important pour mobile
 
     rec.onstart = () => {
         document.getElementById('mic').classList.add('recording');
@@ -125,27 +65,38 @@ if (!API) {
     };
 
     rec.onerror = (e) => {
-        document.getElementById('status').innerText = "ERREUR MICRO : " + e.error;
+        console.error(e);
+        if (e.error === 'service-not-allowed') {
+            alert("ERREUR : Accès système refusé. Vérifiez les réglages Micro de votre téléphone pour ce navigateur.");
+        }
+        document.getElementById('status').innerText = "ERREUR : " + e.error;
         document.getElementById('mic').classList.remove('recording');
     };
 
     rec.onend = () => {
         document.getElementById('mic').classList.remove('recording');
         const final = document.getElementById('status').innerText.replace("→ ", "");
-        if (final.length > 5 && final !== "ÉCOUTE EN COURS...") actions.add(final);
-        document.getElementById('status').innerText = "Appui long sur le micro pour parler";
+        if (final.length > 3 && final !== "ÉCOUTE EN COURS...") {
+            actions.add(final);
+        }
+        document.getElementById('status').innerText = "Maintenir pour parler";
     };
 }
 
 const mic = document.getElementById('mic');
-mic.onmousedown = (e) => { e.preventDefault(); if(rec) rec.start(); };
-mic.onmouseup = () => { if(rec) rec.stop(); };
-mic.ontouchstart = (e) => { e.preventDefault(); if(rec) rec.start(); };
-mic.ontouchend = () => { if(rec) rec.stop(); };
+// Force l'initialisation au premier contact
+const handleStart = (e) => {
+    e.preventDefault();
+    if (!rec) initSpeech();
+    try { rec.start(); } catch(err) { console.log("Déjà lancé"); }
+};
+
+mic.addEventListener('mousedown', handleStart);
+mic.addEventListener('mouseup', () => rec && rec.stop());
+mic.addEventListener('touchstart', handleStart);
+mic.addEventListener('touchend', () => rec && rec.stop());
 
 const raw = localStorage.getItem(DB_KEY);
 if (raw) state = JSON.parse(raw);
 render();
 </script>
-</body>
-</html>
